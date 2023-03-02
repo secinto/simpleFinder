@@ -1,0 +1,15 @@
+---
+#Project configuration
+s2s_path: "S:\\"
+project_path: "{s2s_path}{project_name}\\"
+#Folders
+responses_folder: "{project_path}responses\\"
+recon_folder: "{project_path}recon\\"
+findings_folder: "{project_path}findings\\"
+#Files
+httpx_ips: "{recon_folder}http_from.{project_name}.ips.output.json"
+httpx_domains: "{recon_folder}http_from.{project_name}.domains.output.json"
+domains_file: "{project_path}domains.txt"
+dpux_file: "{recon_folder}dpux.txt"
+unique_ip_ports_file: "{recon_folder}unique_ip_ports.txt"
+domains_cleaned_file: "{project_path}domains_clean.txt"
