@@ -16,13 +16,6 @@ const VERSION = "0.1"
 
 type Config struct {
 	S2SPath            string `yaml:"s2s_path,omitempty"`
-	ProjectName        string `yaml:"project_name,omitempty"`
-	DomainName         string
-	ProjectPath        string `yaml:"project_path,omitempty"`
-	ResponsesFolder    string `yaml:"responses_folder,omitempty"`
-	ReconFolder        string `yaml:"recon_folder,omitempty"`
-	ArchiveFolder      string `yaml:"archive_folder,omitempty"`
-	FindingsFolder     string `yaml:"findings_folder,omitempty"`
 	HttpxIpFile        string `yaml:"httpx_ips,omitempty"`
 	HttpxDomainsFile   string `yaml:"httpx_domains,omitempty"`
 	DomainsFile        string `yaml:"domains_file,omitempty"`
@@ -36,19 +29,24 @@ type Finder struct {
 }
 
 func NewFinder(options *Options) (*Finder, error) {
-	pusher := &Finder{options: options}
-	initialize(options.ConfigFile)
-	return pusher, nil
+	finder := &Finder{options: options}
+	finder.initialize(options.ConfigFile)
+	return finder, nil
 }
 
 func (p *Finder) Find() error {
-	log.Infof("Getting findings from domains of project %s", p.options.Project)
-	FindInDomains()
+	if p.options.Project != "" {
+		log.Infof("Getting findings from domains of project %s", p.options.Project)
+		p.FindInDomains()
+	} else {
+		log.Info("No project specified. Exiting application")
+	}
 	return nil
 }
 
-func initialize(configLocation string) {
+func (p *Finder) initialize(configLocation string) {
 	appConfig = loadConfigFrom(configLocation)
+	p.options.BaseFolder = appConfig.S2SPath + "/" + p.options.Project
 }
 
 func loadConfigFrom(location string) Config {
@@ -76,19 +74,18 @@ func loadConfigFrom(location string) Config {
 	return config
 }
 
-func FindInDomains() {
-	domainsJson := appConfig.HttpxDomainsFile
-	input := GetDocumentFromFile(domainsJson)
-	getInterestingURLs(input)
+func (p *Finder) FindInDomains() {
+
+	input := GetDocumentFromFile(p.options.BaseFolder + "/recon/" + appConfig.HttpxDomainsFile)
+	p.getInterestingURLs(input)
 }
 
-func FindInIPS() {
-	domainsJson := appConfig.HttpxDomainsFile
-	input := GetDocumentFromFile(domainsJson)
-	getInterestingURLs(input)
+func (p *Finder) FindInIPS() {
+	input := GetDocumentFromFile(p.options.BaseFolder + "/recon/" + appConfig.HttpxIpFile)
+	p.getInterestingURLs(input)
 }
 
-func getInterestingURLs(input *jsonquery.Node) {
+func (p *Finder) getInterestingURLs(input *jsonquery.Node) {
 
 	idorPages := GetTitlePagesByQuery(input, []string{"'Index of', 'Setup Configuration'"})
 	phpPages := GetTechPages(input, []string{"'PHP'"})
@@ -97,14 +94,14 @@ func getInterestingURLs(input *jsonquery.Node) {
 	webserverTypes := GetWebserverTypes(input)
 
 	// Interesting titles
-	WriteToTextFileInProject(appConfig.FindingsFolder+"/idor.txt", strings.Join(idorPages[:], "\n"))
+	WriteToTextFileInProject(p.options.BaseFolder+"/findings/idor.txt", strings.Join(idorPages[:], "\n"))
 	// Interesting tech
-	WriteToTextFileInProject(appConfig.FindingsFolder+"/idor.txt", strings.Join(phpPages[:], "\n"))
+	WriteToTextFileInProject(p.options.BaseFolder+"/findings/php.txt", strings.Join(phpPages[:], "\n"))
 	// Interesting security
-	WriteToTextFileInProject(appConfig.FindingsFolder+"/idor.txt", strings.Join(selfSignedPages[:], "\n"))
+	WriteToTextFileInProject(p.options.BaseFolder+"/findings/self_signed.txt", strings.Join(selfSignedPages[:], "\n"))
 	// Interesting protocol
-	WriteToTextFileInProject(appConfig.FindingsFolder+"/idor.txt", strings.Join(port80Pages[:], "\n"))
+	WriteToTextFileInProject(p.options.BaseFolder+"/findings/port_80.txt", strings.Join(port80Pages[:], "\n"))
 	// All types of web servers encountered
-	WriteToTextFileInProject(appConfig.FindingsFolder+"/idor.txt", strings.Join(webserverTypes[:], "\n"))
+	WriteToTextFileInProject(p.options.BaseFolder+"/findings/server_types.txt", strings.Join(webserverTypes[:], "\n"))
 
 }

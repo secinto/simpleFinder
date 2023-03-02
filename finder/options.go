@@ -17,6 +17,7 @@ var (
 type Options struct {
 	ConfigFile string
 	Project    string
+	BaseFolder string
 	Silent     bool
 	Version    bool
 	NoColor    bool
