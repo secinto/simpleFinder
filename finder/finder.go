@@ -35,7 +35,7 @@ type Finder struct {
 	options *Options
 }
 
-func NewPFinder(options *Options) (*Finder, error) {
+func NewFinder(options *Options) (*Finder, error) {
 	pusher := &Finder{options: options}
 	initialize(options.ConfigFile)
 	return pusher, nil
