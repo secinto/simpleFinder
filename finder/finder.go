@@ -15,13 +15,9 @@ var (
 const VERSION = "0.1"
 
 type Config struct {
-	S2SPath            string `yaml:"s2s_path,omitempty"`
-	HttpxIpFile        string `yaml:"httpx_ips,omitempty"`
-	HttpxDomainsFile   string `yaml:"httpx_domains,omitempty"`
-	DomainsFile        string `yaml:"domains_file,omitempty"`
-	DpuxFile           string `yaml:"dpux_file,omitempty"`
-	UniqueIpPortsFile  string `yaml:"unique_ip_ports_file,omitempty"`
-	DomainsCleanedFile string `yaml:"domains_cleaned_file,omitempty"`
+	S2SPath          string `yaml:"s2s_path,omitempty"`
+	HttpxIpFile      string `yaml:"httpx_ips,omitempty"`
+	HttpxDomainsFile string `yaml:"httpx_domains,omitempty"`
 }
 
 type Finder struct {
@@ -47,6 +43,8 @@ func (p *Finder) Find() error {
 func (p *Finder) initialize(configLocation string) {
 	appConfig = loadConfigFrom(configLocation)
 	p.options.BaseFolder = appConfig.S2SPath + "/" + p.options.Project
+	appConfig.HttpxIpFile = strings.Replace(appConfig.HttpxIpFile, "{project_name}", p.options.Project, -1)
+	appConfig.HttpxDomainsFile = strings.Replace(appConfig.HttpxDomainsFile, "{project_name}", p.options.Project, -1)
 }
 
 func loadConfigFrom(location string) Config {

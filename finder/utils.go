@@ -2,7 +2,6 @@ package finder
 
 import (
 	"bufio"
-	"bytes"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -119,39 +118,26 @@ func GetHost(str string) string {
 	return u.Scheme + "://" + u.Host
 }
 
-func SendRequest(method string, url string, data string, cookie string, contentType string) *http.Response {
-	// Creating the initial SAML authentication request from the service provider
-	req, err := http.NewRequest(method, url, bytes.NewBufferString(data))
+func ConvertJSONtoJSONL(input string) string {
 
-	if err != nil {
-		log.Fatalf("Sending GET request failed: %s", err.Error())
+	var data []byte
+	data = append(data, '[')
+
+	lines := strings.Split(strings.ReplaceAll(input, "\r\n", "\n"), "\n")
+
+	isFirst := true
+	for _, line := range lines {
+		if !isFirst && strings.TrimSpace(line) != "" {
+			data = append(data, ',')
+			data = append(data, '\n')
+		}
+		if strings.TrimSpace(line) != "" {
+			data = append(data, line...)
+		}
+		isFirst = false
 	}
-
-	if contentType == "" {
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	} else {
-		req.Header.Set("Content-Type", contentType)
-	}
-
-	if cookie != "" {
-		req.Header.Add("Cookie", cookie)
-	}
-
-	resp, err := client.Do(req)
-
-	if err != nil {
-		log.Fatalf("Request failed: %s ", err.Error())
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusFound && resp.StatusCode != http.StatusOK {
-		log.Fatalf("Returned status code error: %d %s", resp.StatusCode, resp.Status)
-	}
-
-	log.Debug("GET request to %s sent successfully", url)
-
-	return resp
+	data = append(data, ']')
+	return string(data)
 }
 
 func MergeIpsAndDomains(inputFile1 string, inputFile2 string, mergedFile string) {

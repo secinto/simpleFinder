@@ -3,16 +3,24 @@ package finder
 import (
 	"github.com/antchfx/jsonquery"
 	"os"
+	"strings"
 )
 
 func GetDocumentFromFile(filename string) *jsonquery.Node {
 	// Get JSON file
-	f, err := os.Open(filename)
+	//f, err := os.Open(filename)
 	// Parse JSON file
-	input, err := jsonquery.Parse(f)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("Reading JSON input file failed: %s %s", err.Error(), filename)
 	}
+	jsonlString := ConvertJSONtoJSONL(string(data))
+	jsonReader := strings.NewReader(jsonlString)
+	input, err := jsonquery.Parse(jsonReader)
+	if err != nil {
+		log.Fatalf("Reading JSON input file failed: %s %s", err.Error(), filename)
+	}
+
 	return input
 }
 
