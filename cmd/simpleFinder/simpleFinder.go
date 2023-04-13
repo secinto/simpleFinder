@@ -11,11 +11,11 @@ func main() {
 
 	newFinder, err := finder.NewFinder(options)
 	if err != nil {
-		gologger.Fatal().Msgf("Could not create pusher: %s\n", err)
+		gologger.Fatal().Msgf("Could not create finder: %s\n", err)
 	}
 
 	err = newFinder.Find()
 	if err != nil {
-		gologger.Fatal().Msgf("Could not push: %s\n", err)
+		gologger.Fatal().Msgf("Could not find: %s\n", err)
 	}
 }

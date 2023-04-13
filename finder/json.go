@@ -14,7 +14,7 @@ func GetDocumentFromFile(filename string) *jsonquery.Node {
 	if err != nil {
 		log.Fatalf("Reading JSON input file failed: %s %s", err.Error(), filename)
 	}
-	jsonlString := ConvertJSONtoJSONL(string(data))
+	jsonlString := ConvertJSONLtoJSON(string(data))
 	jsonReader := strings.NewReader(jsonlString)
 	input, err := jsonquery.Parse(jsonReader)
 	if err != nil {
@@ -47,17 +47,28 @@ func GetSelfSignedPages(document *jsonquery.Node) []string {
 }
 
 func GetWebserverTypes(document *jsonquery.Node) []string {
-	return GetValuesFromEntriesAll(document, "webserver")
+	return getValuesFromAllEntries(document, "webserver")
 }
 
 func GetUrls(document *jsonquery.Node) []string {
-	return GetValuesFromEntriesAll(document, "url")
+	return getValuesFromAllEntries(document, "url")
+}
+
+func GetMXRecords(document *jsonquery.Node, domain string, main bool) []*jsonquery.Node {
+	if main {
+		return getNodesFromSpecificQueryViaEquals(document, "mx", "host", domain)
+	} else {
+		return getAllNodesForKey(document, "mx")
+
+	}
 }
 
 /*
  HELPER FUNCTIONS
 */
 
+// query = test
+// {"test1":"..", "test2":..,"asdfasdftest":..,*}
 func getValuesFromEntriesViaContains(document *jsonquery.Node, key string, queryKey string, queryContains []string) []string {
 	var result []string
 
@@ -88,6 +99,42 @@ func getValuesFromEntriesViaContains(document *jsonquery.Node, key string, query
 	return result
 }
 
+// {"queryKey":"query" => "key":...}
+func getNodesFromSpecificQueryViaEquals(document *jsonquery.Node, key string, queryKey string, query string) []*jsonquery.Node {
+	//var result []string
+
+	entries, error := jsonquery.QueryAll(document, "*["+queryKey+"='"+query+"']")
+
+	if error != nil {
+		log.Errorf("Querying JSON error   #%v ", error)
+	}
+	return entries
+	/*
+		for _, entry := range entries {
+
+			if entryValues, ok := entry.Value().(map[string]interface{}); ok {
+				values, exists := entryValues[key]
+				if exists {
+					if entries, ok := values.([]interface{}); ok {
+						for _, subValues := range entries {
+							if subValue, ok := subValues.(string); ok {
+								result = AppendIfMissing(result, subValue)
+							}
+						}
+					} else {
+						if entry, ok := values.(string); ok {
+							result = AppendIfMissing(result, entry)
+						}
+					}
+				}
+			}
+		}
+
+		return result
+	*/
+}
+
+// *[isbn='0-553-21311-3']
 func getValuesFromEntriesMatchBoolean(document *jsonquery.Node, key string, queryKey string, matchCondition bool) []string {
 	var result []string
 	var query string
@@ -139,8 +186,41 @@ func getAllNodesByContains(document *jsonquery.Node, key string, queryKey string
 	return results
 }
 
-func GetAllNodesByKey(document *jsonquery.Node, key string) []*jsonquery.Node {
-	entries, error := jsonquery.QueryAll(document, "//"+key)
+func getValuesForKey(document *jsonquery.Node, key string) []string {
+	var result []string
+
+	entries, error := jsonquery.QueryAll(document, "//*")
+
+	if error != nil {
+		log.Errorf("Querying JSON error   #%v ", error)
+	}
+
+	for _, entry := range entries {
+
+		if entryValues, ok := entry.Value().(map[string]interface{}); ok {
+			values, exists := entryValues[key]
+			if exists {
+				if entries, ok := values.([]interface{}); ok {
+					for _, subValues := range entries {
+						if subValue, ok := subValues.(string); ok {
+							result = AppendIfMissing(result, subValue)
+						}
+					}
+				} else {
+					if value, ok := values.(string); ok {
+						result = AppendIfMissing(result, value)
+					}
+				}
+			}
+		}
+	}
+
+	return result
+
+}
+
+func getAllNodesForKey(document *jsonquery.Node, key string) []*jsonquery.Node {
+	entries, error := jsonquery.QueryAll(document, "//*["+key+"]")
 
 	if error != nil {
 		log.Errorf("Querying JSON error   #%v ", error)
@@ -149,7 +229,7 @@ func GetAllNodesByKey(document *jsonquery.Node, key string) []*jsonquery.Node {
 	return entries
 }
 
-func GetSingleValueFromEntriesAll(document *jsonquery.Node, key string) string {
+func getSingleValueFromAllEntries(document *jsonquery.Node, key string) string {
 
 	entries, error := jsonquery.QueryAll(document, "//"+key)
 	if error != nil {
@@ -170,7 +250,7 @@ func GetSingleValueFromEntriesAll(document *jsonquery.Node, key string) string {
 	return ""
 }
 
-func GetValuesFromEntriesAll(document *jsonquery.Node, key string) []string {
+func getValuesFromAllEntries(document *jsonquery.Node, key string) []string {
 	var result []string
 	entries, error := jsonquery.QueryAll(document, "//"+key)
 	if error != nil {
@@ -200,6 +280,51 @@ func GetValuesFromEntriesAll(document *jsonquery.Node, key string) []string {
 							}
 						}
 					}
+				}
+			}
+		}
+	}
+	return result
+}
+func getValuesFromAllNodes(nodes []*jsonquery.Node, key string) []string {
+	var result []string
+	for _, recordEntry := range nodes {
+
+		if entryValues, ok := recordEntry.Value().(map[string]interface{}); ok {
+			values, exists := entryValues[key]
+			if exists {
+				if entries, ok := values.([]interface{}); ok {
+					for _, subValues := range entries {
+						if subValue, ok := subValues.(string); ok {
+							result = AppendIfMissing(result, subValue)
+						}
+					}
+				} else {
+					if entry, ok := values.(string); ok {
+						result = AppendIfMissing(result, entry)
+					}
+				}
+			}
+		}
+	}
+	return result
+}
+
+func getValuesFromNode(node *jsonquery.Node, key string) []string {
+	var result []string
+
+	if entryValues, ok := node.Value().(map[string]interface{}); ok {
+		values, exists := entryValues[key]
+		if exists {
+			if entries, ok := values.([]interface{}); ok {
+				for _, subValues := range entries {
+					if subValue, ok := subValues.(string); ok {
+						result = AppendIfMissing(result, subValue)
+					}
+				}
+			} else {
+				if entry, ok := values.(string); ok {
+					result = AppendIfMissing(result, entry)
 				}
 			}
 		}
