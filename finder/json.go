@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func GetDocumentFromFile(filename string) *jsonquery.Node {
+func GetJSONDocumentFromFile(filename string) *jsonquery.Node {
 	// Get JSON file
 	//f, err := os.Open(filename)
 	// Parse JSON file
@@ -29,38 +29,21 @@ func GetDocumentFromFile(filename string) *jsonquery.Node {
 Interesting info extraction section
 -----------------------------------------
 */
-func GetTitlePagesByQuery(document *jsonquery.Node, query []string) []string {
-	return getValuesFromEntriesViaContains(document, "url", "title", query)
+
+func GetValueForQueryKey(document *jsonquery.Node, requestedField string, queryKey string, query []string) []string {
+	return getValuesFromEntriesViaContains(document, requestedField, queryKey, query)
 }
 
-func GetTechPages(document *jsonquery.Node, queryContains []string) []string {
-	return getValuesFromEntriesViaContains(document, "url", "tech", queryContains)
+func GetValueForQueryBoolean(document *jsonquery.Node, requestedField string, queryKey string, matchCondition bool) []string {
+	return getValuesFromEntriesMatchBoolean(document, requestedField, queryKey, matchCondition)
 }
 
-func GetPort80Pages(document *jsonquery.Node) []string {
-	query := []string{"':80'"}
-	return getValuesFromEntriesViaContains(document, "url", "url", query)
+func GetAllValuesForKey(document *jsonquery.Node, key string) []string {
+	return getValuesFromAllEntries(document, key)
 }
 
-func GetSelfSignedPages(document *jsonquery.Node) []string {
-	return getValuesFromEntriesMatchBoolean(document, "url", "self_signed", true)
-}
-
-func GetWebserverTypes(document *jsonquery.Node) []string {
-	return getValuesFromAllEntries(document, "webserver")
-}
-
-func GetUrls(document *jsonquery.Node) []string {
-	return getValuesFromAllEntries(document, "url")
-}
-
-func GetMXRecords(document *jsonquery.Node, domain string, main bool) []*jsonquery.Node {
-	if main {
-		return getNodesFromSpecificQueryViaEquals(document, "mx", "host", domain)
-	} else {
-		return getAllNodesForKey(document, "mx")
-
-	}
+func GetAllRecordsForKey(document *jsonquery.Node, key string) []*jsonquery.Node {
+	return getAllNodesForKey(document, key)
 }
 
 /*
@@ -100,7 +83,7 @@ func getValuesFromEntriesViaContains(document *jsonquery.Node, key string, query
 }
 
 // {"queryKey":"query" => "key":...}
-func getNodesFromSpecificQueryViaEquals(document *jsonquery.Node, key string, queryKey string, query string) []*jsonquery.Node {
+func getNodesFromSpecificQueryViaEquals(document *jsonquery.Node, queryKey string, query string) []*jsonquery.Node {
 	//var result []string
 
 	entries, error := jsonquery.QueryAll(document, "*["+queryKey+"='"+query+"']")
@@ -109,29 +92,6 @@ func getNodesFromSpecificQueryViaEquals(document *jsonquery.Node, key string, qu
 		log.Errorf("Querying JSON error   #%v ", error)
 	}
 	return entries
-	/*
-		for _, entry := range entries {
-
-			if entryValues, ok := entry.Value().(map[string]interface{}); ok {
-				values, exists := entryValues[key]
-				if exists {
-					if entries, ok := values.([]interface{}); ok {
-						for _, subValues := range entries {
-							if subValue, ok := subValues.(string); ok {
-								result = AppendIfMissing(result, subValue)
-							}
-						}
-					} else {
-						if entry, ok := values.(string); ok {
-							result = AppendIfMissing(result, entry)
-						}
-					}
-				}
-			}
-		}
-
-		return result
-	*/
 }
 
 // *[isbn='0-553-21311-3']

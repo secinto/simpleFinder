@@ -2,6 +2,7 @@ package finder
 
 import (
 	"bufio"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,6 +16,16 @@ var (
 			return http.ErrUseLastResponse
 		}}
 )
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func RandStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
 
 func CreateDirectoryIfNotExists(dir string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
