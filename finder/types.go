@@ -14,11 +14,7 @@ type Config struct {
 }
 
 type Project struct {
-	Name       string        `yaml:"name"`
-	Findings   []Finding     `yaml:"findings"`
-	Infos      []Information `yaml:"infos"`
-	MXRecords  []MailRecord  `yaml:"mail_dns_records"`
-	DNSRecords []DNSRecord   `yaml:"dns_records"`
+	Name string `yaml:"name"`
 }
 
 type Information struct {

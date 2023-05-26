@@ -6,15 +6,13 @@ import (
 	"gopkg.in/yaml.v3"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 )
 
 var (
-	log        = NewLogger()
-	appConfig  Config
-	windows_os = false
-	project    Project
+	log       = NewLogger()
+	appConfig Config
+	project   Project
 )
 
 /*
@@ -38,13 +36,8 @@ func (p *Finder) initialize(configLocation string) {
 	appConfig.DnsmxFile = strings.Replace(appConfig.DnsmxFile, "{project_name}", p.options.Project, -1)
 	appConfig.PortsXMLFile = strings.Replace(appConfig.PortsXMLFile, "{project_name}", p.options.Project, -1)
 
-	if runtime.GOOS == "windows" {
-		windows_os = true
-	}
-
 	project = Project{
-		Name:     p.options.Project,
-		Findings: nil,
+		Name: p.options.Project,
 	}
 }
 
@@ -181,7 +174,9 @@ func (p *Finder) FindMailRecords() []MailRecord {
 				dmarcEntries := getNodesFromSpecificQueryViaEquals(input, "host", "_dmarc."+hostEntries[0])
 				if len(dmarcEntries) > 0 {
 					dmarcEntry := getValuesFromNode(dmarcEntries[0], "txt")
-					mxRecord.DMARCEntry = dmarcEntry[0]
+					if dmarcEntry != nil {
+						mxRecord.DMARCEntry = dmarcEntry[0]
+					}
 				}
 
 				mxRecords = append(mxRecords, mxRecord)
@@ -270,7 +265,7 @@ func (p *Finder) FindDNSRecords() []DNSRecord {
 		}
 	}
 	//Convert map to array
-	values := []DNSRecord{}
+	var values []DNSRecord
 	for _, value := range dnsRecords {
 		values = append(values, value)
 	}
