@@ -8,36 +8,35 @@ type Config struct {
 	HttpxDomainsFile string `yaml:"httpx_domains,omitempty"`
 	HttpxCleanFile   string `yaml:"httpx_clean,omitempty"`
 	DpuxFile         string `yaml:"dpux,omitempty"`
+	DpuxCleanFile    string `yaml:"dpux_clean,omitempty"`
 	DnsmxFile        string `yaml:"dnsmx,omitempty"`
-	PortsXMLFile     string `yaml:"ports_xml,omitempty"`
-	PortsSimpleFile  string `yaml:"ports_simple,omitempty"`
 }
 
 type Project struct {
-	Name string `yaml:"name"`
+	Name string `json:"name"`
 }
 
 type Information struct {
-	Name        string   `yaml:"name"`
-	Category    Category `yaml:"category"`
-	Endpoints   []string `yaml:"endpoints,omitempty"`
-	Description string   `yaml:"description,omitempty"`
-	Tags        []string `yaml:"tags,omitempty"`
+	Name        string   `json:"name"`
+	Category    Category `json:"category"`
+	Endpoints   []string `json:"endpoints,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
 }
 
 type MailRecord struct {
-	Host        string   `yaml:"host"`
-	MXRecords   []string `yaml:"mx_records"`
-	SPFEntry    string   `yaml:"spf_entry,omitempty"`
-	DMARCEntry  string   `yaml:"dmarc_entry,omitempty"`
-	DKIMEntries []string `yaml:"dkim_entries,omitempty"`
+	Host        string   `json:"Host"`
+	MXRecords   []string `json:"MXRecords"`
+	SPFEntry    string   `json:"SPFEntry,omitempty"`
+	DMARCEntry  string   `json:"DMARCEntry,omitempty"`
+	DKIMEntries []string `json:"DKIMEntries,omitempty"`
 }
 
 type DNSRecord struct {
-	Host          string   `yaml:"host"`
-	IPv4Addresses []string `yaml:"ipv4"`
-	IPv6Addresses []string `yaml:"ipv6,omitempty"`
-	WhoisInfo     string   `yaml:"whois,omitempty"`
+	Host          string   `json:"Host"`
+	IPv4Addresses []string `json:"IPv4Addresses"`
+	IPv6Addresses []string `json:"IPv6Addresses,omitempty"`
+	WhoisInfo     string   `json:"WhoisInfo,omitempty"`
 }
 
 type ServiceRecord struct {
@@ -48,13 +47,13 @@ type ServiceRecord struct {
 }
 
 type Finding struct {
-	Name         string   `yaml:"name"`
-	Category     Category `yaml:"category"`
-	Severity     string   `yaml:"severity,omitempty"`
-	Endpoints    []string `yaml:"endpoints,omitempty"`
-	Description  string   `yaml:"description,omitempty"`
-	Tags         []string `yaml:"tags,omitempty"`
-	Reproduction string   `yaml:"reproduction,omitempty"`
+	Name         string   `json:"name"`
+	Category     Category `json:"category"`
+	Severity     string   `json:"severity,omitempty"`
+	Endpoints    []string `json:"endpoints,omitempty"`
+	Description  string   `json:"description,omitempty"`
+	Tags         []string `json:"tags,omitempty"`
+	Reproduction string   `json:"reproduction,omitempty"`
 }
 
 type Category int

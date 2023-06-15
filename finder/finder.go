@@ -34,7 +34,7 @@ func (p *Finder) initialize(configLocation string) {
 	appConfig.HttpxIpFile = strings.Replace(appConfig.HttpxIpFile, "{project_name}", p.options.Project, -1)
 	appConfig.HttpxDomainsFile = strings.Replace(appConfig.HttpxDomainsFile, "{project_name}", p.options.Project, -1)
 	appConfig.DnsmxFile = strings.Replace(appConfig.DnsmxFile, "{project_name}", p.options.Project, -1)
-	appConfig.PortsXMLFile = strings.Replace(appConfig.PortsXMLFile, "{project_name}", p.options.Project, -1)
+	//appConfig.PortsXMLFile = strings.Replace(appConfig.PortsXMLFile, "{project_name}", p.options.Project, -1)
 
 	project = Project{
 		Name: p.options.Project,
@@ -64,7 +64,9 @@ func loadConfigFrom(location string) Config {
 			S2SPath:          "S://",
 			HttpxIpFile:      "http_from.{project_name}.ips.output.json",
 			HttpxDomainsFile: "http_from.{project_name}.domains.output.json",
-			DpuxFile:         "dpux_clean.json",
+			HttpxCleanFile:   "http_from.clean.output.json",
+			DpuxFile:         "dpux.{project_name}.output.json",
+			DpuxCleanFile:    "dpux_clean.json",
 			DnsmxFile:        "dnsmx.{project_name}.output.json",
 		}
 	}
@@ -94,7 +96,7 @@ func (p *Finder) Find() error {
 			WriteToTextFileInProject(p.options.BaseFolder+"/findings/dns.json", string(data))
 			log.Infof("%d DNS information records have been found", len(dnsRecords))
 		} else if p.options.Ports {
-			log.Info("%Performing service checks")
+			log.Info("Performing service checks")
 			serviceRecords := p.FindServiceRecords()
 			data, _ := json.MarshalIndent(serviceRecords, "", " ")
 			WriteToTextFileInProject(p.options.BaseFolder+"/findings/services.json", string(data))
@@ -155,6 +157,7 @@ func (p *Finder) FindMailRecords() []MailRecord {
 		// Fine, we found at least one. Now check if the other information (SPF, DMARC, DKIM) is available.
 		for _, mxRecordNode := range allMXRecords {
 			hostEntries := getValuesFromNode(mxRecordNode, "host")
+
 			if len(hostEntries) >= 1 {
 				mxRecordEntries := getValuesFromNode(mxRecordNode, "mx")
 				mxRecord := MailRecord{
@@ -179,8 +182,24 @@ func (p *Finder) FindMailRecords() []MailRecord {
 					}
 				}
 
-				mxRecords = append(mxRecords, mxRecord)
-
+				dkimEntries := getAllNodesByContains(input, "host", []string{"_domainkey." + hostEntries[0]})
+				if len(dkimEntries) > 0 {
+					var entries []string
+					for _, dkimEntry := range dkimEntries {
+						dkimValue := getValuesFromNode(dkimEntry.Parent, "txt")
+						if len(dkimValue) > 0 {
+							entries = append(entries, strings.Join(dkimValue, ""))
+						}
+					}
+					if len(entries) > 0 {
+						mxRecord.DKIMEntries = entries
+					}
+				}
+				if !strings.HasPrefix(hostEntries[0], "_dmarc.") && !strings.Contains(hostEntries[0], "_domainkey.") {
+					mxRecords = append(mxRecords, mxRecord)
+				} else {
+					log.Infof("Not using DNS record for %s", hostEntries[0])
+				}
 			} else {
 				log.Errorf("Found records without host value. %s", mxRecordNode)
 			}
@@ -201,9 +220,10 @@ func (p *Finder) FindDNSRecords() []DNSRecord {
 			if entryValues, ok := dnsRecordNode.Value().(map[string]interface{}); ok {
 				if len(entryValues) > 0 {
 					host := entryValues["host"].(string)
+					var ip4Addresses []string
+					var ip6Addresses []string
+
 					if _, exists := dnsRecords[host]; !exists {
-						var ip4Addresses []string
-						var ip6Addresses []string
 
 						if entries, ok := entryValues["a"].([]interface{}); ok {
 							for _, address := range entries {
@@ -224,15 +244,9 @@ func (p *Finder) FindDNSRecords() []DNSRecord {
 						} else if entry, ok := entryValues["aaaa"].(string); ok {
 							ip6Addresses = append(ip6Addresses, entry)
 						}
-
-						dnsRecords[host] = DNSRecord{
-							Host:          host,
-							IPv4Addresses: ip4Addresses,
-							IPv6Addresses: ip6Addresses,
-						}
 					} else {
-						ip4Addresses := dnsRecords[host].IPv4Addresses
-						ip6Addresses := dnsRecords[host].IPv6Addresses
+						ip4Addresses = dnsRecords[host].IPv4Addresses
+						ip6Addresses = dnsRecords[host].IPv6Addresses
 
 						if entries, ok := entryValues["a"].([]interface{}); ok {
 							for _, address := range entries {
@@ -253,12 +267,16 @@ func (p *Finder) FindDNSRecords() []DNSRecord {
 						} else if entry, ok := entryValues["aaaa"].(string); ok {
 							ip6Addresses = append(ip6Addresses, entry)
 						}
+					}
+					if !strings.HasPrefix(host, "_dmarc.") && !strings.Contains(host, "_domainkey.") {
 
 						dnsRecords[host] = DNSRecord{
 							Host:          host,
 							IPv4Addresses: ip4Addresses,
 							IPv6Addresses: ip6Addresses,
 						}
+					} else {
+						log.Infof("Not using host %s for dns.json", host)
 					}
 				}
 			}
@@ -274,7 +292,7 @@ func (p *Finder) FindDNSRecords() []DNSRecord {
 
 func (p *Finder) FindServiceRecords() []DNSRecord {
 	var dnsRecords []DNSRecord
-	input := GetJSONDocumentFromFile(p.options.BaseFolder + "recon/" + appConfig.DpuxFile)
+	input := GetJSONDocumentFromFile(p.options.BaseFolder + "recon/" + appConfig.DpuxCleanFile)
 	allDNSRecords := GetAllRecordsForKey(input, "host")
 	// Check all other entries from DNSX
 	if len(allDNSRecords) >= 1 {
@@ -300,7 +318,6 @@ func (p *Finder) FindSubdomainTakeoverRecords() {
 */
 func (p *Finder) getInterestingURLs(input *jsonquery.Node) {
 
-	titlePages := GetValueForQueryKey(input, "url", "title", []string{"'Index of', 'Setup Configuration'"})
 	errorPages := GetValueForQueryKey(input, "url", "title", []string{"'Error', 'Fehler', 'Exception'"})
 	idorPages := GetValueForQueryKey(input, "url", "title", []string{"'Index of'", "'Setup Configuration'"})
 	loginPages := GetValueForQueryKey(input, "url", "title", []string{"'Anmelden'", "'Login'", "'Anmeldung'", "'Authentication'", "'Authorization'"})
@@ -321,10 +338,6 @@ func (p *Finder) getInterestingURLs(input *jsonquery.Node) {
 	CreateDirectoryIfNotExists(p.options.BaseFolder + "findings/")
 
 	// Interesting titles
-	if len(titlePages) > 0 {
-		WriteToTextFileInProject(p.options.BaseFolder+"findings/titles.txt", strings.Join(titlePages[:], "\n"))
-		log.Infof("Found %d hosts with interesting title pages", len(titlePages))
-	}
 	if len(errorPages) > 0 {
 		WriteToTextFileInProject(p.options.BaseFolder+"findings/errors.txt", strings.Join(errorPages[:], "\n"))
 		log.Infof("Found %d hosts with interesting error pages", len(errorPages))

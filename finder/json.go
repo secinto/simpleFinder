@@ -127,12 +127,12 @@ func getValuesFromEntriesMatchBoolean(document *jsonquery.Node, key string, quer
 	return result
 }
 
-func getAllNodesByContains(document *jsonquery.Node, key string, queryKey string, queryContains []string) []*jsonquery.Node {
+func getAllNodesByContains(document *jsonquery.Node, queryKey string, queryContains []string) []*jsonquery.Node {
 
 	var results []*jsonquery.Node
 
 	for _, query := range queryContains {
-		entries, error := jsonquery.QueryAll(document, "//*/"+queryKey+"[contains(.,"+query+")]")
+		entries, error := jsonquery.QueryAll(document, "//*/"+queryKey+"[contains(.,'"+query+"')]")
 
 		if error != nil {
 			log.Errorf("Querying JSON error   #%v ", error)
@@ -187,27 +187,6 @@ func getAllNodesForKey(document *jsonquery.Node, key string) []*jsonquery.Node {
 	}
 
 	return entries
-}
-
-func getSingleValueFromAllEntries(document *jsonquery.Node, key string) string {
-
-	entries, error := jsonquery.QueryAll(document, "//"+key)
-	if error != nil {
-		log.Errorf("Querying JSON error   #%v ", error)
-	}
-
-	if len(entries) == 1 {
-		if entryValues, ok := entries[0].Parent.Value().(map[string]interface{}); ok {
-			values, exists := entryValues[key]
-			if exists {
-				if value, ok := values.(string); ok {
-					return value
-				}
-
-			}
-		}
-	}
-	return ""
 }
 
 func getValuesFromAllEntries(document *jsonquery.Node, key string) []string {
