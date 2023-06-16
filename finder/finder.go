@@ -268,7 +268,7 @@ func (p *Finder) FindDNSRecords() []DNSRecord {
 							ip6Addresses = append(ip6Addresses, entry)
 						}
 					}
-					if !strings.HasPrefix(host, "_dmarc.") && !strings.Contains(host, "_domainkey.") {
+					if !strings.HasPrefix(host, "_dmarc.") && !strings.Contains(host, "_domainkey.") && !strings.HasPrefix(host, "spf.") {
 
 						dnsRecords[host] = DNSRecord{
 							Host:          host,
