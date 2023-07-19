@@ -7,7 +7,6 @@ type Config struct {
 	HttpxIpFile      string `yaml:"httpx_ips,omitempty"`
 	HttpxDomainsFile string `yaml:"httpx_domains,omitempty"`
 	HttpxCleanFile   string `yaml:"httpx_clean,omitempty"`
-	DpuxFile         string `yaml:"dpux,omitempty"`
 	DpuxCleanFile    string `yaml:"dpux_clean,omitempty"`
 	DnsmxFile        string `yaml:"dnsmx,omitempty"`
 }

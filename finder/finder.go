@@ -65,7 +65,6 @@ func loadConfigFrom(location string) Config {
 			HttpxIpFile:      "http_from.{project_name}.ips.output.json",
 			HttpxDomainsFile: "http_from.{project_name}.domains.output.json",
 			HttpxCleanFile:   "http_from.clean.output.json",
-			DpuxFile:         "dpux.{project_name}.output.json",
 			DpuxCleanFile:    "dpux_clean.json",
 			DnsmxFile:        "dnsmx.{project_name}.output.json",
 		}
