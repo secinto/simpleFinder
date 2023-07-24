@@ -33,7 +33,7 @@ func ParseOptions() *Options {
 	options := &Options{}
 	var err error
 	flagSet := goflags.NewFlagSet()
-	flagSet.SetDescription(`get simple findings from the obtained information for the specified project`)
+	flagSet.SetDescription(fmt.Sprintf("simpleFinder %s - Get findings from input files for a specific project", VERSION))
 
 	flagSet.CreateGroup("input", "Input",
 		flagSet.StringVarP(&options.Project, "project", "p", "", "project name for metadata addition"),

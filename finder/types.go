@@ -1,6 +1,6 @@
 package finder
 
-const VERSION = "0.1"
+const VERSION = "0.1.9"
 
 type Config struct {
 	S2SPath          string `yaml:"s2s_path"`

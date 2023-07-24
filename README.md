@@ -17,7 +17,7 @@ Description
 simpleFinder is a GO tool which tries to identify possible interesting URLs and hosts from different sources. 
 Input files are mostly JSON output from projectdiscovery tools such as httpx, subfinder, dnsx as well as JSON 
 files created from Nmap port scans and webanalyze technology enumeration and others.   
-Also, the stored request responses as obtained from httpx are used. In addition, output from feroxBuster and 
+Also, the stored responses, as obtained from httpx are used. In addition, output from feroxBuster and 
 ffuf can also be included.
 
 # Installation Instructions
