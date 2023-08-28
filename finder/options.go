@@ -20,7 +20,6 @@ type Options struct {
 	BaseFolder   string
 	DNS          bool
 	Email        bool
-	Ports        bool
 	Silent       bool
 	Version      bool
 	NoColor      bool
@@ -39,7 +38,6 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.Project, "project", "p", "", "project name for metadata addition"),
 		flagSet.BoolVar(&options.Email, "email", false, "identify Email security (MX, TXT, ...) for the specified project"),
 		flagSet.BoolVar(&options.DNS, "dns", false, "identify DNS resolutions for the specified project"),
-		flagSet.BoolVar(&options.Ports, "ports", false, "identify open ports for the specified project"),
 		flagSet.BoolVar(&options.All, "all", false, "perform all checks"),
 	)
 

@@ -8,7 +8,7 @@ type Config struct {
 	HttpxDomainsFile string `yaml:"httpx_domains,omitempty"`
 	HttpxCleanFile   string `yaml:"httpx_clean,omitempty"`
 	DpuxCleanFile    string `yaml:"dpux_clean,omitempty"`
-	DnsmxFile        string `yaml:"dnsmx,omitempty"`
+	DpuxFile         string `yaml:"dpux,omitempty"`
 }
 
 type Project struct {

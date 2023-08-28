@@ -33,7 +33,7 @@ func (p *Finder) initialize(configLocation string) {
 	}
 	appConfig.HttpxIpFile = strings.Replace(appConfig.HttpxIpFile, "{project_name}", p.options.Project, -1)
 	appConfig.HttpxDomainsFile = strings.Replace(appConfig.HttpxDomainsFile, "{project_name}", p.options.Project, -1)
-	appConfig.DnsmxFile = strings.Replace(appConfig.DnsmxFile, "{project_name}", p.options.Project, -1)
+	appConfig.DpuxFile = strings.Replace(appConfig.DpuxFile, "{project_name}", p.options.Project, -1)
 	//appConfig.PortsXMLFile = strings.Replace(appConfig.PortsXMLFile, "{project_name}", p.options.Project, -1)
 
 	project = Project{
@@ -66,7 +66,7 @@ func loadConfigFrom(location string) Config {
 			HttpxDomainsFile: "http_from.{project_name}.domains.output.json",
 			HttpxCleanFile:   "http_from.clean.output.json",
 			DpuxCleanFile:    "dpux_clean.json",
-			DnsmxFile:        "dnsmx.{project_name}.output.json",
+			DpuxFile:         "dpux.{project_name}.output.json",
 		}
 	}
 	return config
@@ -94,12 +94,6 @@ func (p *Finder) Find() error {
 			data, _ := json.MarshalIndent(dnsRecords, "", " ")
 			WriteToTextFileInProject(p.options.BaseFolder+"/findings/dns.json", string(data))
 			log.Infof("%d DNS information records have been found", len(dnsRecords))
-		} else if p.options.Ports {
-			log.Info("Performing service checks")
-			serviceRecords := p.FindServiceRecords()
-			data, _ := json.MarshalIndent(serviceRecords, "", " ")
-			WriteToTextFileInProject(p.options.BaseFolder+"/findings/services.json", string(data))
-			log.Infof("%d Service information records have been found", len(serviceRecords))
 		} else if p.options.All {
 			//p.FindInterestingDomains()
 			log.Info("Performing HTTP site checks")
@@ -148,7 +142,7 @@ func (p *Finder) FindInterestingAllCleaned() {
 
 func (p *Finder) FindMailRecords() []MailRecord {
 	var mxRecords []MailRecord
-	input := GetJSONDocumentFromFile(p.options.BaseFolder + "recon/" + appConfig.DnsmxFile)
+	input := GetJSONDocumentFromFile(p.options.BaseFolder + "recon/" + appConfig.DpuxFile)
 	// Get MX records for the main site (the one named as the project
 	allMXRecords := GetAllRecordsForKey(input, "mx")
 	// Check all other entries from DNSX
@@ -209,7 +203,7 @@ func (p *Finder) FindMailRecords() []MailRecord {
 }
 
 func (p *Finder) FindDNSRecords() []DNSRecord {
-	input := GetJSONDocumentFromFile(p.options.BaseFolder + "recon/" + appConfig.DnsmxFile)
+	input := GetJSONDocumentFromFile(p.options.BaseFolder + "recon/" + appConfig.DpuxFile)
 	allDNSRecords := GetAllRecordsForKey(input, "host")
 	// Check all other entries from DNSX
 
@@ -287,25 +281,6 @@ func (p *Finder) FindDNSRecords() []DNSRecord {
 		values = append(values, value)
 	}
 	return values
-}
-
-func (p *Finder) FindServiceRecords() []DNSRecord {
-	var dnsRecords []DNSRecord
-	input := GetJSONDocumentFromFile(p.options.BaseFolder + "recon/" + appConfig.DpuxCleanFile)
-	allDNSRecords := GetAllRecordsForKey(input, "host")
-	// Check all other entries from DNSX
-	if len(allDNSRecords) >= 1 {
-		for _, dnsRecordNode := range allDNSRecords {
-			dnsRecord := p.getDNSRecordForHost(dnsRecords, dnsRecordNode.Value().(string))
-			dnsRecords = append(dnsRecords, *dnsRecord)
-		}
-	}
-	return dnsRecords
-}
-
-func (p *Finder) FindDomainExpiryRecords() {
-}
-func (p *Finder) FindSubdomainTakeoverRecords() {
 }
 
 /*
