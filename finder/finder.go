@@ -1,11 +1,9 @@
 package finder
 
 import (
-	"encoding/json"
 	"github.com/antchfx/jsonquery"
 	"gopkg.in/yaml.v3"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -33,8 +31,6 @@ func (p *Finder) initialize(configLocation string) {
 	}
 	appConfig.HttpxIpFile = strings.Replace(appConfig.HttpxIpFile, "{project_name}", p.options.Project, -1)
 	appConfig.HttpxDomainsFile = strings.Replace(appConfig.HttpxDomainsFile, "{project_name}", p.options.Project, -1)
-	appConfig.DpuxFile = strings.Replace(appConfig.DpuxFile, "{project_name}", p.options.Project, -1)
-	//appConfig.PortsXMLFile = strings.Replace(appConfig.PortsXMLFile, "{project_name}", p.options.Project, -1)
 
 	project = Project{
 		Name: p.options.Project,
@@ -65,8 +61,6 @@ func loadConfigFrom(location string) Config {
 			HttpxIpFile:      "http_from.{project_name}.ips.output.json",
 			HttpxDomainsFile: "http_from.{project_name}.domains.output.json",
 			HttpxCleanFile:   "http_from.clean.output.json",
-			DpuxCleanFile:    "dpux_clean.json",
-			DpuxFile:         "dpux.{project_name}.output.json",
 		}
 	}
 	return config
@@ -81,33 +75,9 @@ func NewFinder(options *Options) (*Finder, error) {
 func (p *Finder) Find() error {
 	if p.options.Project != "" {
 		log.Infof("Getting findings for project %s", p.options.Project)
-		if p.options.Email {
-			log.Info("Performing mail checks")
-			mxRecords := p.FindMailRecords()
-			data, _ := json.MarshalIndent(mxRecords, "", " ")
-			WriteToTextFileInProject(p.options.BaseFolder+"/findings/mailsecurity.json", string(data))
-			log.Infof("%d Mail information records have been found", len(mxRecords))
-
-		} else if p.options.DNS {
-			log.Info("Performing DNS checks")
-			dnsRecords := p.FindDNSRecords()
-			data, _ := json.MarshalIndent(dnsRecords, "", " ")
-			WriteToTextFileInProject(p.options.BaseFolder+"/findings/dns.json", string(data))
-			log.Infof("%d DNS information records have been found", len(dnsRecords))
-		} else if p.options.All {
-			//p.FindInterestingDomains()
+		if p.options.Hosts {
 			log.Info("Performing HTTP site checks")
 			p.FindInterestingAllCleaned()
-			log.Info("Performing mail checks")
-			mxRecords := p.FindMailRecords()
-			data, _ := json.MarshalIndent(mxRecords, "", " ")
-			WriteToTextFileInProject(p.options.BaseFolder+"/findings/mailsecurity.json", string(data))
-			log.Infof("%d Mail information records have been found", len(mxRecords))
-			log.Info("Performing DNS checks")
-			dnsRecords := p.FindDNSRecords()
-			data, _ = json.MarshalIndent(dnsRecords, "", " ")
-			WriteToTextFileInProject(p.options.BaseFolder+"/findings/dns.json", string(data))
-			log.Infof("%d DNS information records have been found", len(dnsRecords))
 		} else {
 			log.Info("Performing HTTP site checks")
 			p.FindInterestingAllCleaned()
@@ -138,149 +108,6 @@ func (p *Finder) FindInterestingIPS() {
 func (p *Finder) FindInterestingAllCleaned() {
 	input := GetJSONDocumentFromFile(p.options.BaseFolder + "recon/" + appConfig.HttpxCleanFile)
 	p.getInterestingURLs(input)
-}
-
-func (p *Finder) FindMailRecords() []MailRecord {
-	var mxRecords []MailRecord
-	input := GetJSONDocumentFromFile(p.options.BaseFolder + "recon/" + appConfig.DpuxFile)
-	// Get MX records for the main site (the one named as the project
-	allMXRecords := GetAllRecordsForKey(input, "mx")
-	// Check all other entries from DNSX
-	if len(allMXRecords) >= 1 {
-		// Fine, we found at least one. Now check if the other information (SPF, DMARC, DKIM) is available.
-		for _, mxRecordNode := range allMXRecords {
-			hostEntries := getValuesFromNode(mxRecordNode, "host")
-
-			if len(hostEntries) >= 1 {
-				mxRecordEntries := getValuesFromNode(mxRecordNode, "mx")
-				mxRecord := MailRecord{
-					Host:      hostEntries[0],
-					MXRecords: mxRecordEntries,
-				}
-				// Check if the host has an SPF entry.
-				txtEntries := getValuesFromNode(mxRecordNode, "txt")
-				if len(txtEntries) > 0 {
-					for _, txtEntry := range txtEntries {
-						if strings.Contains(strings.ToLower(txtEntry), "spf") {
-							mxRecord.SPFEntry = txtEntry
-						}
-					}
-				}
-				// Check if an DMARC entry exists for the current host
-				dmarcEntries := getNodesFromSpecificQueryViaEquals(input, "host", "_dmarc."+hostEntries[0])
-				if len(dmarcEntries) > 0 {
-					dmarcEntry := getValuesFromNode(dmarcEntries[0], "txt")
-					if dmarcEntry != nil {
-						mxRecord.DMARCEntry = dmarcEntry[0]
-					}
-				}
-
-				dkimEntries := getAllNodesByContains(input, "host", []string{"_domainkey." + hostEntries[0]})
-				if len(dkimEntries) > 0 {
-					var entries []string
-					for _, dkimEntry := range dkimEntries {
-						dkimValue := getValuesFromNode(dkimEntry.Parent, "txt")
-						if len(dkimValue) > 0 {
-							entries = append(entries, strings.Join(dkimValue, ""))
-						}
-					}
-					if len(entries) > 0 {
-						mxRecord.DKIMEntries = entries
-					}
-				}
-				if !strings.HasPrefix(hostEntries[0], "_dmarc.") && !strings.Contains(hostEntries[0], "_domainkey.") {
-					mxRecords = append(mxRecords, mxRecord)
-				} else {
-					log.Infof("Not using DNS record for %s", hostEntries[0])
-				}
-			} else {
-				log.Errorf("Found records without host value. %s", mxRecordNode)
-			}
-		}
-	}
-
-	return mxRecords
-}
-
-func (p *Finder) FindDNSRecords() []DNSRecord {
-	input := GetJSONDocumentFromFile(p.options.BaseFolder + "recon/" + appConfig.DpuxFile)
-	allDNSRecords := GetAllRecordsForKey(input, "host")
-	// Check all other entries from DNSX
-
-	dnsRecords := make(map[string]DNSRecord)
-	if len(allDNSRecords) >= 1 {
-		for _, dnsRecordNode := range allDNSRecords {
-			if entryValues, ok := dnsRecordNode.Value().(map[string]interface{}); ok {
-				if len(entryValues) > 0 {
-					host := entryValues["host"].(string)
-					var ip4Addresses []string
-					var ip6Addresses []string
-
-					if _, exists := dnsRecords[host]; !exists {
-
-						if entries, ok := entryValues["a"].([]interface{}); ok {
-							for _, address := range entries {
-								if _, ok := address.(string); ok {
-									ip4Addresses = append(ip4Addresses, address.(string))
-								}
-							}
-						} else if entry, ok := entryValues["a"].(string); ok {
-							ip4Addresses = append(ip4Addresses, entry)
-						}
-
-						if entries, ok := entryValues["aaaa"].([]interface{}); ok {
-							for _, address := range entries {
-								if _, ok := address.(string); ok {
-									ip6Addresses = append(ip6Addresses, address.(string))
-								}
-							}
-						} else if entry, ok := entryValues["aaaa"].(string); ok {
-							ip6Addresses = append(ip6Addresses, entry)
-						}
-					} else {
-						ip4Addresses = dnsRecords[host].IPv4Addresses
-						ip6Addresses = dnsRecords[host].IPv6Addresses
-
-						if entries, ok := entryValues["a"].([]interface{}); ok {
-							for _, address := range entries {
-								if _, ok := address.(string); ok {
-									ip4Addresses = append(ip4Addresses, address.(string))
-								}
-							}
-						} else if entry, ok := entryValues["a"].(string); ok {
-							ip4Addresses = append(ip4Addresses, entry)
-						}
-
-						if entries, ok := entryValues["a"].([]interface{}); ok {
-							for _, address := range entries {
-								if _, ok := address.(string); ok {
-									ip6Addresses = append(ip6Addresses, address.(string))
-								}
-							}
-						} else if entry, ok := entryValues["aaaa"].(string); ok {
-							ip6Addresses = append(ip6Addresses, entry)
-						}
-					}
-					if !strings.HasPrefix(host, "_dmarc.") && !strings.Contains(host, "_domainkey.") && !strings.HasPrefix(host, "spf.") {
-
-						dnsRecords[host] = DNSRecord{
-							Host:          host,
-							IPv4Addresses: ip4Addresses,
-							IPv6Addresses: ip6Addresses,
-						}
-					} else {
-						log.Infof("Not using host %s for dns.json", host)
-					}
-				}
-			}
-		}
-	}
-	//Convert map to array
-	var values []DNSRecord
-	for _, value := range dnsRecords {
-		values = append(values, value)
-	}
-	return values
 }
 
 /*
@@ -365,43 +192,4 @@ func (p *Finder) getInterestingURLs(input *jsonquery.Node) {
 		WriteToTextFileInProject(p.options.BaseFolder+"findings/server_types.txt", strings.Join(webserverTypes[:], "\n"))
 		log.Infof("Found %d different web server types", len(webserverTypes))
 	}
-}
-
-func (p *Finder) executeShellCommand(command string, input []string) string {
-
-	out, err := exec.Command(command, input...).Output()
-	if err != nil {
-		log.Fatalf("Executing command %s with params %s was not successful.", command, input)
-	}
-	return string(out)
-}
-
-func (p *Finder) getMXRecordForHost(records []MailRecord, host string) *MailRecord {
-	var result *MailRecord
-	for _, record := range records {
-		if record.Host == host {
-			result = &record
-		}
-	}
-	if result == nil {
-		result = &MailRecord{
-			Host: host,
-		}
-	}
-	return result
-}
-
-func (p *Finder) getDNSRecordForHost(records []DNSRecord, host string) *DNSRecord {
-	var result *DNSRecord
-	for _, record := range records {
-		if record.Host == host {
-			result = &record
-		}
-	}
-	if result == nil {
-		result = &DNSRecord{
-			Host: host,
-		}
-	}
-	return result
 }

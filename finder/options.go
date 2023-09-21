@@ -18,13 +18,11 @@ type Options struct {
 	SettingsFile string
 	Project      string
 	BaseFolder   string
-	DNS          bool
-	Email        bool
+	Hosts        bool
 	Silent       bool
 	Version      bool
 	NoColor      bool
 	Verbose      bool
-	All          bool
 }
 
 // ParseOptions parses the command line flags provided by a user
@@ -36,9 +34,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("input", "Input",
 		flagSet.StringVarP(&options.Project, "project", "p", "", "project name for metadata addition"),
-		flagSet.BoolVar(&options.Email, "email", false, "identify Email security (MX, TXT, ...) for the specified project"),
-		flagSet.BoolVar(&options.DNS, "dns", false, "identify DNS resolutions for the specified project"),
-		flagSet.BoolVar(&options.All, "all", false, "perform all checks"),
+		flagSet.BoolVarP(&options.Hosts, "hosts", "h", false, "identify interesting hosts"),
 	)
 
 	flagSet.CreateGroup("config", "Config",
