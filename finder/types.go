@@ -3,7 +3,7 @@ package finder
 const VERSION = "0.2.1"
 
 type Config struct {
-	S2SPath          string `yaml:"s2s_path"`
+	ProjectsPath     string `yaml:"projects_path"`
 	HttpxIpFile      string `yaml:"httpx_ips,omitempty"`
 	HttpxDomainsFile string `yaml:"httpx_domains,omitempty"`
 	HttpxCleanFile   string `yaml:"httpx_clean,omitempty"`

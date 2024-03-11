@@ -22,10 +22,10 @@ var (
 */
 func (p *Finder) initialize(configLocation string) {
 	appConfig = loadConfigFrom(configLocation)
-	if !strings.HasSuffix(appConfig.S2SPath, "/") {
-		appConfig.S2SPath = appConfig.S2SPath + "/"
+	if !strings.HasSuffix(appConfig.ProjectsPath, "/") {
+		appConfig.ProjectsPath = appConfig.ProjectsPath + "/"
 	}
-	p.options.BaseFolder = appConfig.S2SPath + p.options.Project
+	p.options.BaseFolder = appConfig.ProjectsPath + p.options.Project
 	if !strings.HasSuffix(p.options.BaseFolder, "/") {
 		p.options.BaseFolder = p.options.BaseFolder + "/"
 	}
@@ -57,7 +57,7 @@ func loadConfigFrom(location string) Config {
 
 	if &config == nil {
 		config = Config{
-			S2SPath:          "S://",
+			ProjectsPath:     "/checkfix/projects",
 			HttpxIpFile:      "http_from.{project_name}.ips.output.json",
 			HttpxDomainsFile: "http_from.{project_name}.domains.output.json",
 			HttpxCleanFile:   "http_from.clean.output.json",
