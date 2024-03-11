@@ -29,9 +29,6 @@ func (p *Finder) initialize(configLocation string) {
 	if !strings.HasSuffix(p.options.BaseFolder, "/") {
 		p.options.BaseFolder = p.options.BaseFolder + "/"
 	}
-	appConfig.HttpxIpFile = strings.Replace(appConfig.HttpxIpFile, "{project_name}", p.options.Project, -1)
-	appConfig.HttpxDomainsFile = strings.Replace(appConfig.HttpxDomainsFile, "{project_name}", p.options.Project, -1)
-
 	project = Project{
 		Name: p.options.Project,
 	}
